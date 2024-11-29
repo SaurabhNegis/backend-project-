@@ -8,11 +8,11 @@ class ApiError extends Error{
         super(massage)
         this.statusCode = statusCode
         this.data = null
-        this.message =massage
+        this.message =message
         this.success = false
         this.errors = errors
 
-        if (statck) {
+        if (stack) {
             this.stack = statck
 
         }else{
