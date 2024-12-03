@@ -3,6 +3,29 @@ import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/user.model.js";
 import { UploadOnCloudnary } from "../utils/cloudnary.js";
 import { ApiResponce } from "../utils/ApiResponce.js";
+
+
+const generateAccessAndRefereshTokens = async(userId) => {
+  try {
+   const user  = await User.findById(userId)
+   const accessToken = user.generateAccessToken()
+   const refreshToken =  user.generateRefreshToken()
+
+
+   user.refreshToken = refreshToken
+  await user.save({validateBeforeSave: false})
+
+    return {accessToken, refreshToken}
+  } catch (error) {
+    throw new ApiError(500,"something went wrong while generating refresh and access token!");
+    
+  }
+
+
+}
+
+
+
 const registerUser = asyncHandler(  async (req, res) => {
    // get user info from frontend
    // validation - not empty
@@ -86,6 +109,60 @@ if (!avatar) {
  )
 
 
+})
+
+
+
+const loginUser = asyncHandler(async (req, res) =>{
+// req body - data
+// username or email
+// check the password
+// find the referesh token
+// send cookies
+
+  const {email ,password, username} = req.body
+
+  if (!username || !email) {
+   throw new ApiError(400, "username or password is required!");
+  }
+
+  const user = User.findOne({
+   $or: [{ username },{ email }]
+  })
+
+  if (!user) {
+   throw new ApiError(404,"user does not exist!");
+   
+  }
+
+  const ispasswordvalid = await user.isPasswordCorrect(password)
+   
+  if (!ispasswordvalid) {
+   throw new ApiError(401,"incorrect password!");
+   
+  }
+  
+  const {refreshToken, accessToken} =  await generateAccessAndRefereshTokens(user._id)
+
+
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
+
+
+  const options = {
+   httpOnly: true,
+   secure: true
+  }
+
+  return res.status(200).cookies("accesToken", accessToken, options)
+  .cookies("refreshToken", refreshToken).json(
+   new ApiResponce(
+      200,
+      {
+         user: loggedInUser, accessToken, refreshToken
+      },
+      "User logged in successfully"
+   )
+  )
 })
 
 export { registerUser}  
