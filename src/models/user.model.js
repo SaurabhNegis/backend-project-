@@ -57,11 +57,17 @@ const userSchema = new Schema(
 )
 
 userSchema.pre("save", async function (next) {
-    if (this.isModified("password")) return next();
+    if (!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password, 10)
-    next()
-})
+    try {
+        this.password = await bcrypt.hash(this.password, 10);
+        next();
+    } catch (error) {
+        next(error); // Pass the error to Mongoose
+    }
+});
+
+
  
 
 userSchema.methods.isPasswordCorrect = async function
@@ -91,7 +97,7 @@ userSchema.methods.generateRefreshToken = function(){
         },
         process.env.REPRESH_TOKEN_SECRET,
         {
-            expiresIn:  process.env.REPRESH_TOKEN_EXP
+            expiresIn:  process.env.REPRESH_TOKEN_EXPIRY
         }
 
     )
