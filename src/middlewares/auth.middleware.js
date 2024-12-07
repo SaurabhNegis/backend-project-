@@ -14,11 +14,17 @@ export const verifyJWT = asyncHandler(async(req, _, next) => {
     
    // Extract the accessToken from cookies or headers
 
-  const token =   req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer", "")
-     
+   const token =
+   req.cookies?.accessToken ||
+   req.header("Authorization")?.split(" ")[1]; // Handle "Bearer <token>"
+      
+   console.log("Cookies Token:", req.cookies);
+console.log("Authorization Header:", req.header('Authorization'));
+console.log("Extracted Token:", token);
+
 
   if (!token) {
-    throw new ApiError(401 ,"unauthorized request")
+    throw new ApiError(401 ,"unauthorized request!")
   }
 
      // Verify the access token
@@ -36,7 +42,7 @@ export const verifyJWT = asyncHandler(async(req, _, next) => {
    next()
 
 } catch (error) {
-    throw new ApiError(401 , error?.message || "unauthorized request")
+    throw new ApiError(401 , error?.message || "unauthorized request from user!")
 
 
    }
