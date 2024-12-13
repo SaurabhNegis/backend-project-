@@ -192,9 +192,9 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
       req.user._id,
       {
-         $set:
+         $unset:
          {
-            refreshToken: undefined
+            refreshToken: 1
          }
       
       },
@@ -227,22 +227,24 @@ const logoutUser = asyncHandler(async (req, res) => {
 const refereshAccessToken = asyncHandler (async (req, res)  => {
   const incomingRefreshToken  = req.cookies.refreshToken || req.body.refreshToken
   
-
+  console.log(req.cookies.refreshToken)
+    
   if (!incomingRefreshToken) {
    throw new ApiError(401, "unauthrized request");
   }
 
   try {
-   const decodedToken   = jwt.verify(incomingRefreshToken, process.env.REPRESH_TOKEN_SECRET);
+   const decodedToken   =   jwt.verify(incomingRefreshToken, process.env.REPRESH_TOKEN_SECRET);
   const user = await  User.findById(decodedToken?._id)
 
 
+  console.log("Decoded token:", decodedToken);
 
    if (!user) {
       throw new ApiError(401, "Invalid refresh token");
    }
    
-   if (incomingRefreshToken !== user?.refereshToken) {
+   if (incomingRefreshToken !== user?.refreshToken) {
       throw new ApiError(401, "refresh token is expired or used");
       
    }
@@ -266,7 +268,7 @@ const refereshAccessToken = asyncHandler (async (req, res)  => {
       )
    )
   } catch (error) {
-   throw new ApiError("Invalid refresh token");
+   throw new ApiError( 401, error?.message || "invalid refresh token!");
    
   }
    
