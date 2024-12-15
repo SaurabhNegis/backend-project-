@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/user.model.js";
 import { UploadOnCloudnary } from "../utils/cloudnary.js";
 import { ApiResponce } from "../utils/ApiResponce.js";
+import mongoose from "mongoose";
+
 import jwt from "jsonwebtoken"
 
 
@@ -339,7 +341,7 @@ const updateUserAvatar = asyncHandler( async (req, res) => {
    throw new ApiError(400, "Error while uploading on avatar");
   }
 
-  await User.findByIdAndUpdate(
+  const user = await User.findByIdAndUpdate(
    req.user?._id,
   {
    $set:{
@@ -371,7 +373,7 @@ const updateUserCoverImage = asyncHandler( async (req, res) => {
    throw new ApiError(400, "Error while uploading on coverImage!");
   }
 
-  await User.findByIdAndUpdate(
+ const user =  await User.findByIdAndUpdate(
    req.user?._id,
   {
    $set:{
