@@ -83,6 +83,27 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
+
+        // Validate videoId
+        if (!videoId || !mongoose.isValidObjectId(videoId)) {
+            throw new ApiError(400, "Invalid or missing video ID");
+        }
+    
+        try {
+            // Fetch video from the database
+            const video = await Video.findById(videoId).populate("owner", "fullName email").select("title description videoFile thumbnail views createdAt updatedAt");
+            ;
+    
+            if (!video) {
+                throw new ApiError(404, "Video not found");
+            }
+    
+            // Respond with the video details
+            res.status(200).json(new ApiResponce(200, "Video fetched successfully", video));
+        } catch (error) {
+            throw new ApiError(500, error.message || "An error occurred while fetching the video");
+        }
+    
 })
 
 
