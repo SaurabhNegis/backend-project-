@@ -24,7 +24,35 @@ return responce
              return null;
         }
     }
-
+    
+    const deleteFromCloudinary = async (publicUrl) => {
+        try {
+            // Extract the public ID from the URL (works for both images and videos)
+            const segments = publicUrl.split('/');
+            const fileNameWithExtension = segments.pop();
+            let publicId = fileNameWithExtension.split('.')[0]; // Extract publicId by removing file extension
+    
+            // Determine resource type based on file extension
+            const fileExtension = fileNameWithExtension.split('.').pop().toLowerCase();
+            const resourceType = (fileExtension === 'mp4' || fileExtension === 'mov') ? 'video' : 'image';
+    
+            console.log("Public ID extracted:", publicId); // Log the public ID
+            console.log("Resource type determined:", resourceType); // Log the resource type
+    
+            // Perform the deletion from Cloudinary
+            const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    
+            if (result.result === 'ok') {
+                console.log(`Successfully deleted: ${publicId}`);
+            } else {
+                console.log(`Failed to delete: ${publicId}`);
+            }
+        } catch (error) {
+            console.error("Error deleting from Cloudinary:", error);
+        }
+    };
+    
+    
 
     const optimizeUrl =  cloudinary.url( {
         fetch_format: 'auto',
@@ -43,4 +71,4 @@ return responce
 
     
  
-export { UploadOnCloudnary}
+export { UploadOnCloudnary, deleteFromCloudinary}

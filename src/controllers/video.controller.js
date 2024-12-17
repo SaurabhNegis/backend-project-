@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import { ApiResponce } from "../utils/ApiResponce.js";
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { UploadOnCloudnary } from "../utils/cloudnary.js";
+import { UploadOnCloudnary,deleteFromCloudinary } from "../utils/cloudnary.js";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -110,12 +110,79 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
+    const { title, description } = req.body;
+    const thumbnail = req.files?.videoFile?.[0]; // Assuming Multer handles `thumbnail` upload
+
+    // Validate videoId
+    if (!videoId || !mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid or missing video ID");
+    }
+
+    try {
+        // Prepare update fields
+        const updateData = {};
+        if (title) updateData.title = title;
+        if (description) updateData.description = description;
+
+        if (thumbnail) {
+            // Upload new thumbnail to Cloudinary
+            const uploadResult = await UploadOnCloudnary(thumbnail.path, "image");
+            updateData.thumbnail = uploadResult.secure_url;
+
+            // Remove local file after upload
+            fs.unlinkSync(thumbnail.path);
+        }
+
+        // Use findByIdAndUpdate to update the video
+        const updatedVideo = await Video.findByIdAndUpdate(
+            videoId,
+            { $set: updateData }, // Fields to update
+            { new: true, runValidators: true } // Return the updated document and validate inputs
+        ).populate("owner", "name email");
+
+        if (!updatedVideo) {
+            throw new ApiError(404, "Video not found");
+        }
+
+        // Respond with the updated video details
+        res.status(200).json(new ApiResponce(200, "Video updated successfully", updatedVideo));
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while updating the video");
+    }
 
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+
+    // Validate videoId
+    if (!videoId || !mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid or missing video ID");
+    }
+
+    try {
+        // Find and delete the video
+        const video = await Video.findByIdAndDelete(videoId);
+
+        if (!video) {
+            throw new ApiError(404, "Video not found");
+        }
+
+    
+
+        // Optionally, remove associated files (video and thumbnail) from Cloudinary
+            await deleteFromCloudinary(video.videoFile);
+        
+            await deleteFromCloudinary(video.thumbnail);
+        
+
+        // Respond with success
+        res.status(200).json(new ApiResponce(200, "Video deleted successfully", null));
+    } catch (error) {
+        throw new ApiError(500, error.message || "An error occurred while deleting the video");
+    }
+
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
