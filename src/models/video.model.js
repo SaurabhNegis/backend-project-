@@ -27,7 +27,7 @@ const videoSchema = new Schema(
     default:0
    },
    ispublished: {
-    type: boolean,
+    type: Boolean,
     default: true
    },
    owner: {
@@ -37,7 +37,7 @@ const videoSchema = new Schema(
 
 },
 {
-    timeStamps: true
+    timestamps: true
 }
 )
 

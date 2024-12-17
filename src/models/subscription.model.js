@@ -19,4 +19,4 @@ subscriber:{
 )
 
 
-export const Subcription = mongoose.model("Subcription", subcriptionSchema)
+export const Subscription = mongoose.model("Subscription", subcriptionSchema)
