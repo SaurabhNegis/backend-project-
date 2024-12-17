@@ -10,6 +10,60 @@ import { UploadOnCloudnary,deleteFromCloudinary } from "../utils/cloudnary.js";
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     //TODO: get all videos based on query, sort, pagination
+        // Convert page and limit to integers
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+    
+        // Build query conditions
+        let searchConditions = {};
+    
+        if (query) {
+            // Search for videos matching the query in title or description (case insensitive)
+            searchConditions = {
+                ...searchConditions,
+                $or: [
+                    { title: { $regex: query, $options: 'i' } },
+                    { description: { $regex: query, $options: 'i' } }
+                ]
+            };
+        }
+    
+        if (userId) {
+            // Filter by userId if provided
+            searchConditions = {
+                ...searchConditions,
+                owner: userId
+            };
+        }
+    
+        // Build sort conditions
+        const sortConditions = {
+            [sortBy]: sortType === "asc" ? 1 : -1
+        };
+    
+        // Perform pagination and sorting
+        const videos = await Video.find(searchConditions)
+            .sort(sortConditions)
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum);
+    
+        // Count total videos for pagination
+        const totalVideos = await Video.countDocuments(searchConditions);
+    
+        // Calculate total pages
+        const totalPages = Math.ceil(totalVideos / limitNum);
+    
+        res.status(200).json({
+            success: true,
+            data: videos,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: totalPages,
+                totalVideos: totalVideos,
+                limit: limitNum,
+            }
+        });
+    
 })
 
 
@@ -187,6 +241,27 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+        // Find the video by its ID
+        const video = await Video.findById(videoId);
+
+        // If the video does not exist, return an error
+        if (!video) {
+            throw new ApiError(404, "Video not found");
+        }
+    
+        // Toggle the 'ispublished' status
+        video.ispublished = !video.ispublished;
+    
+        // Save the updated video
+        await video.save();
+    
+        // Return a success response with the updated video
+        res.status(200).json({
+            success: true,
+            message: `Video publish status changed to ${video.ispublished ? 'published' : 'unpublished'}`,
+            video,
+        });
+    
 })
 
 export {
