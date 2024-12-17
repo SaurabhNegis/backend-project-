@@ -40,12 +40,108 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    // TODO: get user tweets
-})
+    const { userId } = req.params; // Extract userId from route params
+    const { page = 1, limit = 10 } = req.query;
+
+    // Validate userId
+    if (!mongoose.isValidObjectId(userId)) {
+        throw new ApiError(400, "Invalid user ID.");
+    }
+    
+    // Convert page and limit to integers
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+
+    // Build the aggregation pipeline
+    const pipeline = [
+        // Match tweets authored by the user
+        { $match: { owner: new mongoose.Types.ObjectId(userId) } },
+
+        // Sort tweets by creation date (most recent first)
+        { $sort: { createdAt: -1 } },
+
+        // Paginate: Skip and limit
+        { $skip: (pageNum - 1) * limitNum },
+        { $limit: limitNum },
+
+        // Optionally: Populate author details (if needed)
+        {
+            $lookup: {
+                from: "users", // Name of the user collection
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    // Select only specific fields from the user document
+                    {
+                        $project: {
+                            _id: 1,
+                            name: 1,
+                            email: 1, // Add or remove fields as needed
+                        },
+                    },
+                ],
+            },
+        },
+
+        { $unwind: "$ownerDetails" }, // Flatten the authorDetails array
+    ];
+
+    // Execute the aggregation
+    const tweets = await Tweet.aggregate(pipeline);
+
+    // Count total tweets for pagination
+    const totalTweets = await Tweet.countDocuments({ owner: userId });
+    const totalPages = Math.ceil(totalTweets / limitNum);
+
+    // Respond with the results
+    res.status(200).json(
+        new ApiResponce(200, "User tweets retrieved successfully.", {
+            tweets,
+            pagination: {
+                currentPage: pageNum,
+                totalPages,
+                totalTweets,
+                limit: limitNum,
+            },
+        })
+    );
+});
 
 const updateTweet = asyncHandler(async (req, res) => {
-    //TODO: update tweet
-})
+    const { tweetId } = req.params; // Extract the tweet ID from the route params
+    const { content } = req.body;  // Extract the new content from the request body
+
+    // Validate the tweet ID
+    if (!mongoose.isValidObjectId(tweetId)) {
+        throw new ApiError(400, "Invalid tweet ID.");
+    }
+
+    // Ensure content is provided
+    if (!content || content.trim() === "") {
+        throw new ApiError(400, "Content cannot be empty.");
+    }
+
+    // Update the tweet
+    const updatedTweet = await Tweet.findByIdAndUpdate(
+        tweetId,
+        { content },
+        { new: true, runValidators: true } // Return the updated document and validate the new content
+    );
+
+    // Check if the tweet exists
+    if (!updatedTweet) {
+        throw new ApiError(404, "Tweet not found.");
+    }
+
+    // Respond with the updated tweet
+    res.status(200).json({
+        success: true,
+        message: "Tweet updated successfully.",
+        data: updatedTweet,
+    });
+});
+
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //TODO: delete tweet
