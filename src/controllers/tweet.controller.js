@@ -30,10 +30,8 @@ const createTweet = asyncHandler(async (req, res) => {
         });
     
       // Respond with success
-      res.status(201).json(
-        new ApiResponce(201, "Tweet created successfully.", {
-            tweet,
-        })
+      res.status(201)
+      .json(new ApiResponce(201, "Tweet created successfully.",  tweet)
     );
 
 
@@ -135,16 +133,30 @@ const updateTweet = asyncHandler(async (req, res) => {
     }
 
     // Respond with the updated tweet
-    res.status(200).json({
-        success: true,
-        message: "Tweet updated successfully.",
-        data: updatedTweet,
-    });
+    res.status(200)
+    .json(new ApiResponce(200, updatedTweet , "Updated tweet successfully."))
+
 });
 
 
 const deleteTweet = asyncHandler(async (req, res) => {
     //TODO: delete tweet
+    const { tweetId } = req.params; 
+        // Validate the tweet ID
+        if (!mongoose.isValidObjectId(tweetId)) {
+            throw new ApiError(400, "Invalid tweet ID.");
+        }
+    
+        const deletedTweet = await Tweet.findByIdAndDelete(tweetId);
+
+            // Check if the tweet exists
+    if (!deletedTweet) {
+        throw new ApiError(404, "Tweet not found.");
+    }
+
+    res.status(200)
+    .json(new ApiResponce(200, deletedTweet, "Deleted tweet successfully."))
+
 })
 
 export {
