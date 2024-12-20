@@ -108,18 +108,86 @@ const addVideoToPlaylist = asyncHandler(async (req, res) => {
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
     const {playlistId, videoId} = req.params
     // TODO: remove video from playlist
+        // Validate playlistId and videoId
+        if (!mongoose.isValidObjectId(playlistId)) {
+            throw new ApiError(400, "Invalid playlist ID");
+        }
+        if (!mongoose.isValidObjectId(videoId)) {
+            throw new ApiError(400, "Invalid video ID");
+        }
+    
+        // Check if the playlist exists
+        const playlist = await Playlist.findById(playlistId);
+        if (!playlist) {
+            throw new ApiError(404, "Playlist not found");
+        }
+    
+        // Remove the video from the playlist
+        const videoIndex = playlist.videos.indexOf(videoId);
+        if (videoIndex === -1) {
+            throw new ApiError(404, "Video not found in the playlist");
+        }
+    
+        playlist.videos.splice(videoIndex, 1);
+        await playlist.save();
+    
+        // Respond with the updated playlist
+        res.status(200).json(new ApiResponce(200, "Video removed from playlist successfully", playlist));
+    
 
 })
 
 const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     // TODO: delete playlist
+
+
+    // Validate playlistId
+    if (!mongoose.isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid playlist ID");
+    }
+
+    // Check if the playlist exists
+    const playlist = await Playlist.findById(playlistId);
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    }
+
+    // Delete the playlist
+    await playlist.remove();
+
+    // Respond with success message
+    res.status(200).json(new ApiResponce(200, "Playlist deleted successfully"));
+
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     const {name, description} = req.body
     //TODO: update playlist
+
+
+    // Validate playlistId
+    if (!mongoose.isValidObjectId(playlistId)) {
+        throw new ApiError(400, "Invalid playlist ID");
+    }
+
+    // Check if the playlist exists
+    const playlist = await Playlist.findById(playlistId);
+    if (!playlist) {
+        throw new ApiError(404, "Playlist not found");
+    }
+
+    // Update the playlist fields
+    if (name) playlist.name = name;
+    if (description) playlist.description = description;
+
+    // Save the updated playlist
+    await playlist.save();
+
+    // Respond with the updated playlist
+    res.status(200).json(new ApiResponce(200, "Playlist updated successfully", playlist));
+
 })
 
 export {
