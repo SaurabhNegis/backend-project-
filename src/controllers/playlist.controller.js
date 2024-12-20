@@ -33,6 +33,17 @@ const createPlaylist = asyncHandler(async (req, res) => {
 const getUserPlaylists = asyncHandler(async (req, res) => {
     const {userId} = req.params
     //TODO: get user playlists
+        // Validate userId
+        if (!mongoose.isValidObjectId(userId)) {
+            throw new ApiError(400, "Invalid user ID");
+        }
+    
+        // Fetch playlists for the user
+        const playlists = await Playlist.find({ owner: userId }).populate("videos");
+    
+        // Respond with the playlists
+        res.status(200).json(new ApiResponce(200, "User playlists retrieved successfully", playlists));
+    
 })
 
 const getPlaylistById = asyncHandler(async (req, res) => {
