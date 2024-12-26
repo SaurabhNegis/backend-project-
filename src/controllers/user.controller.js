@@ -111,7 +111,7 @@ if (!avatar) {
    
  }
 
-
+ 
  return res.status(201).json(
    new ApiResponce(200, createdUser, "User registered Successfully")
  )
